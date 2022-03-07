@@ -38,7 +38,7 @@ case class MarkdownWriter(filePath: Path) {
     name: String,
     weight: Int,
     desc: Option[String],
-    extras: Map[String, String] = Map.empty[String, String]
+    extras: Map[String, String]
   ): this.type = {
     val adds: String = extras.map { case (k: String, v: String) => s"$k: $v" }
       .mkString("\n")
@@ -54,27 +54,36 @@ case class MarkdownWriter(filePath: Path) {
     this
   }
 
-  def containerWeight: Int = 2 * 5
+  val containerWeight: Int = 2 * 5
 
-  def fileHead(cont: ParentDefOf[Definition]): this.type = {
+  def fileHead(
+    cont: ParentDefOf[Definition],
+    extras: Map[String,String] = Map.empty[String,String]
+  ): this.type = {
     fileHead(
       cont.id.format,
       containerWeight,
       Option(
         cont.brief.fold(cont.id.format + " has no brief description.")(_.s)
       ),
-      Map("geekdocCollapseSection" -> "true")
+      Map("geekdocCollapseSection" -> "true") ++ extras
     )
   }
 
-  def fileHead(definition: Definition, weight: Int): this.type = {
+  def fileHead(
+    definition: Definition,
+    weight: Int,
+    extras: Map[String,String]
+  ): this.type
+  = {
     fileHead(
       definition.id.format,
       weight,
       Option(
         definition.brief
           .fold(definition.id.format + " has no brief description.")(_.s)
-      )
+      ),
+      extras
     )
   }
 
@@ -244,8 +253,8 @@ case class MarkdownWriter(filePath: Path) {
     )
   }
 
-  def emitDomain(domain: Domain, parents: Seq[String]): this.type = {
-    fileHead(domain)
+  def emitDomain(domain: Domain, parents: Seq[String], extras: Map[String,String]): this.type = {
+    fileHead(domain, extras)
     title(domain)
     if (domain.author.nonEmpty) {
       val a = domain.author.get
@@ -320,8 +329,12 @@ case class MarkdownWriter(filePath: Path) {
     this
   }
 
-  def emitFunction(function: Function, parents: Seq[String]): this.type = {
-    fileHead(function)
+  def emitFunction(
+    function: Function,
+    parents: Seq[String],
+    extras: Map[String,String]
+  ): this.type = {
+    fileHead(function, extras)
     h2(function.id.format)
     emitBriefly(function, parents)
     emitDetails(function.description)
@@ -332,8 +345,12 @@ case class MarkdownWriter(filePath: Path) {
     this
   }
 
-  def emitContext(cont: Context, parents: Seq[String]): this.type = {
-    fileHead(cont)
+  def emitContext(
+    cont: Context,
+    parents: Seq[String],
+    extras: Map[String,String]
+  ): this.type = {
+    fileHead(cont, extras)
     title(cont)
     emitBriefly(cont, parents)
     emitDetails(cont.description)
@@ -390,8 +407,12 @@ case class MarkdownWriter(filePath: Path) {
     this
   }
 
-  def emitEntity(entity: Entity, parents: Seq[String]): this.type = {
-    fileHead(entity)
+  def emitEntity(
+    entity: Entity,
+    parents: Seq[String],
+    extras: Map[String,String]
+  ): this.type = {
+    fileHead(entity, extras)
     title(entity)
     emitBriefly(entity, parents)
     emitDetails(entity.description)
@@ -420,8 +441,12 @@ case class MarkdownWriter(filePath: Path) {
     }
     this
   }
-  def emitSaga(saga: Saga, parents: Seq[String]): this.type = {
-    fileHead(saga)
+  def emitSaga(
+    saga: Saga,
+    parents: Seq[String],
+    extras: Map[String,String]
+  ): this.type = {
+    fileHead(saga, extras)
     title(saga)
     emitBriefly(saga, parents)
     emitDetails(saga.description)
@@ -430,8 +455,12 @@ case class MarkdownWriter(filePath: Path) {
     emitSagaSteps(saga.sagaSteps, parents)
   }
 
-  def emitStory(story: Story, prefix: Seq[String]): this.type = {
-    fileHead(story)
+  def emitStory(
+    story: Story,
+    prefix: Seq[String],
+    extras: Map[String,String]
+  ): this.type = {
+    fileHead(story, extras)
     title(story)
     emitBriefly(story, prefix)
     emitDetails(story.description)
@@ -443,8 +472,12 @@ case class MarkdownWriter(filePath: Path) {
     list("Implemented By", story.implementedBy.map(_.format))
   }
 
-  def emitPlant(plant: Plant, parents: Seq[String]): this.type = {
-    fileHead(plant)
+  def emitPlant(
+    plant: Plant,
+    parents: Seq[String],
+    extras: Map[String,String]
+  ): this.type = {
+    fileHead(plant, extras)
     title(plant)
     emitBriefly(plant, parents)
     emitDetails(plant.description)
@@ -455,8 +488,8 @@ case class MarkdownWriter(filePath: Path) {
     list("Output Joints", mkTocSeq(plant.outJoints))
   }
 
-  def emitPipe(pipe: Pipe, parents: Seq[String]): this.type = {
-    fileHead(pipe, weight = 20)
+  def emitPipe(pipe: Pipe, parents: Seq[String],    extras: Map[String,String]): this.type = {
+    fileHead(pipe, weight = 20, extras)
     title(pipe)
     emitBriefly(pipe, parents)
     emitDetails(pipe.description)
@@ -466,8 +499,8 @@ case class MarkdownWriter(filePath: Path) {
     this
   }
 
-  def emitProcessor(proc: Processor, parents: Seq[String]): this.type = {
-    fileHead(proc, weight = 30)
+  def emitProcessor(proc: Processor, parents: Seq[String], extras: Map[String,String]): this.type = {
+    fileHead(proc, weight = 30, extras)
     title(proc)
     emitBriefly(proc, parents)
     emitDetails(proc.description)
@@ -485,8 +518,8 @@ case class MarkdownWriter(filePath: Path) {
     this
   }
 
-  def emitAdaptor(adaptor: Adaptor, parents: Seq[String]): this.type = {
-    fileHead(adaptor)
+  def emitAdaptor(adaptor: Adaptor, parents: Seq[String], extras: Map[String,String]): this.type = {
+    fileHead(adaptor, extras)
     title(adaptor)
     emitBriefly(adaptor, parents)
     emitDetails(adaptor.description)
@@ -496,9 +529,10 @@ case class MarkdownWriter(filePath: Path) {
 
   def emitAdaptation(
     adaptation: Adaptation,
-    parents: Seq[String]
+    parents: Seq[String],
+    extras: Map[String,String]
   ): this.type = {
-    fileHead(adaptation, 20)
+    fileHead(adaptation, 20, extras)
     title(adaptation)
     emitBriefly(adaptation, parents)
     emitDetails(adaptation.description)
@@ -526,7 +560,8 @@ case class MarkdownWriter(filePath: Path) {
     weight: Int,
     terms: Seq[GlossaryEntry]
   ): this.type = {
-    fileHead("Glossary Of Terms", weight, Some("A generated glossary of terms"))
+    fileHead("Glossary Of Terms", weight, Some("A generated glossary of terms"),
+      Map.empty[String,String])
     emitTableHead(Seq("Term", "Type", "Brief", "Path"))
     terms.sortBy(_.term).foreach { entry =>
       val linkPath = entry.path :+ entry.term

@@ -29,7 +29,7 @@ class MarkdownWriterTest extends ParsingTest {
         case Right(root) =>
           root.contents mustNot be(empty)
           val domain = root.contents.head
-          mkd.emitDomain(domain, paths.dropRight(1))
+          mkd.emitDomain(domain, paths.dropRight(1),Map.empty[String,String])
           val emitted = mkd.toString
           val expected =
             """---

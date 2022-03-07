@@ -14,6 +14,7 @@ import java.nio.file.SimpleFileVisitor
 import scala.collection.mutable
 import scala.sys.process.Process
 import java.nio.file._
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 case class HugoTranslatingOptions(
   inputFile: Option[Path] = None,
@@ -23,8 +24,8 @@ case class HugoTranslatingOptions(
   baseUrl: Option[URL] = Option(new URL("https://example.com/")),
   themes: Seq[(String, Option[URL])] =
     Seq("hugo-geekdoc" -> Option(HugoTranslator.geekDoc_url)),
-  sourceURL: Option[URL] = Some(new URL("http://localhost:1313/")),
-  editPath: Option[String] = None,
+  sourceURL: Option[URL] = Some(
+    new URL("http://github.como/reactific/riddl/")),
   siteLogo: Option[URL] = None,
   siteLogoPath: Option[String] = Some("images/logo.png"),
   withGlossary: Boolean = true,
@@ -78,7 +79,7 @@ case class HugoTranslatorState(options: HugoTranslatingOptions) {
         d.id.value,
         d.kind,
         d.brief.map(_.s).getOrElse("--"),
-        (parents :+ d.id.value)
+        parents :+ d.id.value
       )
       terms = terms :+ entry
     }
@@ -89,7 +90,8 @@ case class HugoTranslatorState(options: HugoTranslatingOptions) {
 
   def makeIndex(root: RootContainer): Unit = {
     val mdw = addFile(Seq.empty[String], "_index.md")
-    mdw.fileHead("Top Index", 10, Option("The main index to the content"))
+    mdw.fileHead("Top Index", 10, Option("The main index to the content"),
+      Map.empty[String,String])
     mdw.h2("Domains")
     val domains = root.contents.sortBy(_.id.value)
       .map(d => s"[${d.id.value}](${d.id.value.toLowerCase}/)")
@@ -110,7 +112,8 @@ case class HugoTranslatorState(options: HugoTranslatingOptions) {
       mdw.fileHead(
         "Glossary Of Terms",
         lastFileWeight - 1,
-        Option("A list of definitions needing more work")
+        Option("A list of definitions needing more work"),
+        Map.empty[String,String]
       )
       mdw.emitGlossary(lastFileWeight, terms)
     }
@@ -130,7 +133,8 @@ case class HugoTranslatorState(options: HugoTranslatingOptions) {
       mdw.fileHead(
         "To Do List",
         lastFileWeight - 1,
-        Option("A list of definitions needing more work")
+        Option("A list of definitions needing more work"),
+        Map.empty[String,String]
       )
       mdw.h2("Definitions With Missing Content")
       mdw.list(items)
@@ -152,7 +156,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
   val riddl_hugo_theme: (String, String) = "riddl-hugo-theme" ->
     "riddl-hugo-theme.zip"
   val geekdoc_dest_dir = "hugo-geekdoc"
-  val geekDoc_version = "v0.25.1"
+  val geekDoc_version = "v0.27.3"
   val geekDoc_file = "hugo-geekdoc.tar.gz"
   val geekDoc_url = new URL(
     s"https://github.com/thegeeklab/hugo-geekdoc/releases/download/$geekDoc_version/$geekDoc_file"
@@ -172,7 +176,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
     if (from.isDefined) {
       import java.io.InputStream
       import java.nio.file.{ Files, StandardCopyOption }
-      val nameParts = from.get.getFile.split('/')
+      val nameParts = from.get.getFile.split('/').dropWhile(_.isEmpty)
       if (nameParts.nonEmpty) {
         val fileName = nameParts.last
         val in: InputStream = from.get.openStream
@@ -312,23 +316,63 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
     result
   }
 
+  def findGitRoot(path: Path): Path = {
+    var p = path.toAbsolutePath
+    while (p != null && Files.isDirectory(p) &&
+      !Files.isDirectory(p.resolve(".git"))) {
+      p = p.getParent
+    }
+    require(Files.isDirectory(p) && Files.isDirectory(p.resolve(".git")),
+      s"Could not find git root at $path")
+    p
+  }
+
+  def makeGeekDocExtras(
+    state: HugoTranslatorState,
+    parents: Seq[String]
+  ): Map[String,String] = {
+    state.options.inputFile match {
+      case Some(inputPath) =>
+        val parent = inputPath.getParent
+        val gitRoot = findGitRoot(parent).getFileName.toString
+        val asList = parent.normalize().toAbsolutePath.iterator().asScala.toSeq
+        val relative = asList.dropWhile(_.toString != gitRoot).drop(1)
+        val partial = relative.map(_.toString.toLowerCase).mkString("/")
+        state.options.sourceURL match {
+          case Some(url) if url.toString.startsWith("https://github.com/") =>
+            val path = url.toString + "/edit/main/" + partial + "/" +
+              inputPath.getFileName.toString.toLowerCase
+            Map("geekdocEditPath" -> path)
+          case Some(url) if url.toString.startsWith("https://gitlab.com/") =>
+            val path = url.toString + "/-/blob/main/" + partial
+            Map("geekdocEditPath" -> path)
+          case _ =>
+            Map.empty[String,String]
+        }
+    }
+  }
+
   def setUpContainer(
     c: ParentDefOf[Definition],
     state: HugoTranslatorState,
     stack: Seq[ParentDefOf[Definition]]
-  ): (MarkdownWriter, Seq[String]) = {
+  ): (MarkdownWriter, Seq[String], Map[String,String]) = {
     state.addDir(c.id.format)
     val pars = parents(stack)
-    state.addFile(pars :+ c.id.format, "_index.md") -> pars
+    val mdw = state.addFile(pars :+ c.id.format, "_index.md")
+    val extras = makeGeekDocExtras(state,pars)
+    (mdw, pars, extras)
   }
 
   def setUpDefinition(
     d: Definition,
     state: HugoTranslatorState,
     stack: Seq[ParentDefOf[Definition]]
-  ): (MarkdownWriter, Seq[String]) = {
+  ): (MarkdownWriter, Seq[String], Map[String,String]) = {
     val pars = parents(stack)
-    state.addFile(pars, d.id.format + ".md") -> pars
+    val mdw = state.addFile(pars, d.id.format + ".md")
+    val extras = makeGeekDocExtras(state,pars)
+    (mdw, pars, extras)
   }
 
   override def translateImpl(
@@ -355,49 +399,49 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
 
     val newState = Folding.foldLeftWithStack(state, parentStack)(root) {
       case (st, e: AST.Entity, stack) =>
-        val (mkd, parents) = setUpContainer(e, st, stack)
-        mkd.emitEntity(e, parents)
+        val (mkd, parents, extras) = setUpContainer(e, st, stack)
+        mkd.emitEntity(e, parents, extras)
         st.addToGlossary(e, parents)
         st
       case (st, f: AST.Function, stack) =>
-        val (mkd, parents) = setUpContainer(f, st, stack)
-        mkd.emitFunction(f, parents)
+        val (mkd, parents, extras) = setUpContainer(f, st, stack)
+        mkd.emitFunction(f, parents, extras)
         st.addToGlossary(f, parents)
       case (st, c: AST.Context, stack) =>
-        val (mkd, parents) = setUpContainer(c, st, stack)
-        mkd.emitContext(c, parents)
+        val (mkd, parents, extras) = setUpContainer(c, st, stack)
+        mkd.emitContext(c, parents, extras)
         st.addToGlossary(c, parents)
       case (st, a: AST.Adaptor, stack) =>
-        val (mkd, parents) = setUpContainer(a, st, stack)
-        mkd.emitAdaptor(a, parents)
+        val (mkd, parents, extras) = setUpContainer(a, st, stack)
+        mkd.emitAdaptor(a, parents, extras)
         st.addToGlossary(a, parents)
       case (st, s: AST.Saga, stack) =>
-        val (mkd, parents) = setUpContainer(s, st, stack)
-        mkd.emitSaga(s, parents)
+        val (mkd, parents, extras) = setUpContainer(s, st, stack)
+        mkd.emitSaga(s, parents, extras)
         st.addToGlossary(s, parents)
       case (st, s: AST.Story, stack) =>
-        val (mkd, parents) = setUpContainer(s, st, stack)
-        mkd.emitStory(s, parents)
+        val (mkd, parents, extras) = setUpContainer(s, st, stack)
+        mkd.emitStory(s, parents, extras)
         st.addToGlossary(s, parents)
       case (st, p: AST.Plant, stack) =>
-        val (mkd, parents) = setUpContainer(p, st, stack)
-        mkd.emitPlant(p, parents)
+        val (mkd, parents, extras) = setUpContainer(p, st, stack)
+        mkd.emitPlant(p, parents, extras)
         st.addToGlossary(p, parents)
       case (st, p: AST.Processor, stack) =>
-        val (mkd, parents) = setUpContainer(p, st, stack)
-        mkd.emitProcessor(p, parents)
+        val (mkd, parents, extras) = setUpContainer(p, st, stack)
+        mkd.emitProcessor(p, parents, extras)
         st.addToGlossary(p, parents)
       case (st, d: AST.Domain, stack) =>
-        val (mkd, parents) = setUpContainer(d, st, stack)
-        mkd.emitDomain(d, parents)
+        val (mkd, parents, extras) = setUpContainer(d, st, stack)
+        mkd.emitDomain(d, parents, extras)
         st.addToGlossary(d, parents)
       case (st, a: AST.Adaptation, stack) =>
-        val (mkd, parents) = setUpDefinition(a, st, stack)
-        mkd.emitAdaptation(a, parents)
+        val (mkd, parents, extras) = setUpDefinition(a, st, stack)
+        mkd.emitAdaptation(a, parents, extras)
         st
       case (st, p: AST.Pipe, stack) =>
-        val (mkd, parents) = setUpDefinition(p, st, stack)
-        mkd.emitPipe(p, parents)
+        val (mkd, parents, extras) = setUpDefinition(p, st, stack)
+        mkd.emitPipe(p, parents, extras)
         st.addToGlossary(p, parents)
       case (st, t: AST.Term, stack)  => st.addToGlossary(t, parents(stack))
       case (st, _: RootContainer, _) =>
@@ -423,8 +467,6 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
       val names: Seq[String] = options.themes.map(_._1)
       (names :+ this.riddl_hugo_theme._1).mkString("[ \"", "\", \"", "\" ]")
     }
-    val srcURL: String = options.sourceURL.fold("")(_.toString)
-    val editPath: String = options.editPath.getOrElse("")
     val siteLogoPath: String = options.siteLogoPath.getOrElse("logo.png")
     val legalPath: String = "/legal"
     val privacyPath: String = "/privacy"
@@ -435,8 +477,8 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
        |languageCode = 'en-us'
        |title = '${options.projectName.getOrElse("Unspecified Project Title")}'
        |name = "${options.projectName.getOrElse("Unspecified Project Name")}"
-       |description = "${options.projectName
-      .getOrElse("Unspecified Project Description")}"
+       |description = "${
+        options.projectName.getOrElse("Unspecified Project Description")}"
        |baseUrl = "${options.baseUrl.fold("https://example.prg/")(_.toString)}"
        |homepage = "https://example.org/"
        |demosite = "https://example.org/"
@@ -503,18 +545,21 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
        |  # docs page (bundle menu only).
        |  geekdocNextPrev = true
        |
-       |  # (Optional, default true) Show a breadcrumb navigation bar at the top of each docs page.
-       |  # You can also specify this parameter per page in front matter.
+       |  # (Optional, default true) Show a breadcrumb navigation bar at the
+       |  # top of each docs page. You can also specify this parameter per page
+       |  # in front matter.
        |  geekdocBreadcrumb = true
        |
        |  # (Optional, default none) Set source repository location. Used for 'Edit page' links.
        |  # You can also specify this parameter per page in front matter.
-       |  geekdocRepo = "$srcURL"
+       |  ${options.sourceURL.fold("# geekdocRepo = \"\"")(
+            "geekdocRepo = \"" +  _.toString + "\"")
+           }
        |
-       |  # (Optional, default none) Enable 'Edit page' links. Requires 'GeekdocRepo' param
-       |  # and path must point to 'content' directory of repo.
-       |  # You can also specify this parameter per page in front matter.
-       |  geekdocEditPath = "$editPath"
+       |  # (Optional, default none) Enable 'Edit page' links. Requires
+       |  # 'geekdocRepo' param and path must point to 'content' directory of
+       |  # repo. You can also specify this parameter per page in front matter.
+       |  # geekdocEditPath = ""
        |
        |  # (Optional, default true) Enables search function with flexsearch.
        |  # Index is built on the fly and might slow down your website.

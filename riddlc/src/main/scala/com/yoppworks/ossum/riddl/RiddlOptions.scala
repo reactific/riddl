@@ -159,8 +159,6 @@ object RiddlOptions {
         sourceURL <- optional(objCur, "source-url", Option.empty[String]) {
           cc => cc.asString.map(Option[String])
         }
-        editPath <- optional(objCur, "edit-path",
-          "path/to/hugo/content") { cc => cc.asString }
         siteLogoURL <- optional(objCur, "site-logo-url", Option.empty[String]) {
           cc => cc.asString.map(Option[String])
         }
@@ -198,7 +196,7 @@ object RiddlOptions {
             Option(Path.of(outputPath)),
             eraseOutput, Option(projectName),
             handleURL(baseURL), themes,
-            handleURL(sourceURL), Option(editPath),
+            handleURL(sourceURL),
             handleURL(siteLogoURL), Option(siteLogoPath)
           )
         }
@@ -454,9 +452,6 @@ object RiddlOptions {
     opt[URL]('s', name = "source-url")
       .action((u, c) => c.copy(hugoOptions = c.hugoOptions.copy(baseUrl = Option(u))))
       .text("URL to the input file's Git Repository"),
-    opt[String]('h', name = "edit-path")
-      .action((h, c) => c.copy(hugoOptions = c.hugoOptions.copy(editPath = Option(h))))
-      .text("Path to add to source-url to allow editing"),
     opt[URL]('l', name = "site-logo-url")
       .action((u, c) => c.copy(hugoOptions = c.hugoOptions.copy(siteLogo = Option(u))))
       .text("URL to the site's logo image for use by site"),

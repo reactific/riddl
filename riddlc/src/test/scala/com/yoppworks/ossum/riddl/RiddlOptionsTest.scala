@@ -73,7 +73,6 @@ class RiddlOptionsTest extends AnyWordSpec with Matchers {
             new java.net.URL("https://riddl.yoppworks.com"))
           ho.sourceURL mustBe Option(
             new java.net.URL("https://gitlab.com/Yoppworks/Ossum/riddl"))
-          ho.editPath mustBe Option("/-/blob/main/examples/src/riddl/ReactiveBBQ")
           ho.siteLogo mustBe None
           ho.siteLogoPath mustBe Option("/images/RBBQ.png")
       }

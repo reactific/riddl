@@ -33,7 +33,7 @@ buildInfoKeys := Seq[BuildInfoKey](
 )
 
 lazy val scala2_13_Options = Seq(
-  "-target:17",
+  "-target:11",
   // "-Ypatmat-exhaust-depth 40", Zinc can't handle this :(
   "-Xsource:3",
   "-Wdead-code",
@@ -175,7 +175,7 @@ lazy val `riddl-idea-plugin` = project.in(file("riddl-idea-plugin"))
     ThisBuild / intellijPlatform   := IntelliJPlatform.IdeaCommunity,
     intellijPlugins       += "com.intellij.properties".toPlugin,
     ThisBuild / intellijAttachSources := true,
-    Compile / javacOptions ++= "--release" :: "17" :: Nil,
+    Compile / javacOptions ++= "--release" :: "11" :: Nil,
     libraryDependencies ++= Seq(
       "com.eclipsesource.minimal-json" % "minimal-json" % "0.9.5" withSources()
     ),

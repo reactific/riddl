@@ -22,12 +22,16 @@ abstract class HugoTranslateExamplesBase extends ValidatingTest {
     showStyleWarnings = false
   )
 
-  def genHugo(projectName: String, source: String): Seq[Path] = {
+  def genHugo(
+    projectName: String,
+    source: String,
+    hugoOptions: HugoTranslatingOptions = HugoTranslatingOptions()
+  ): Seq[Path] = {
     val outDir = Path.of(output).resolve(source)
     val outDirFile = outDir.toFile
     if (!outDirFile.isDirectory) outDirFile.mkdirs()
     val sourcePath = Path.of(directory).resolve(source)
-    val htc = HugoTranslatingOptions(
+    val htc = hugoOptions.copy(
       inputFile = Some(sourcePath),
       outputDir = Some(outDir),
       eraseOutput = true,
@@ -65,8 +69,13 @@ abstract class HugoTranslateExamplesBase extends ValidatingTest {
     }
   }
 
-  def checkExamples(name: String, path: String): Assertion = {
-    genHugo(name, path) mustNot be(empty) // translation must have happened
+  def checkExamples(
+    name: String,
+    path: String,
+    options: HugoTranslatingOptions = HugoTranslatingOptions()
+  ): Assertion = {
+    // translation must have happened
+    genHugo(name, path, options) mustNot be(empty)
     runHugo(path)
   }
 }
