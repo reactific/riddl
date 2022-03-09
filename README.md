@@ -1,6 +1,7 @@
+![Build Status](https://github.com/reactific/riddl/actions/workflows/scala.yml/badge.svg)
+
+
 # riddl
-[![pipeline](https://gitlab.com/yoppworks/ossum/riddl/badges/master/pipeline.svg)](https://gitlab.com/yoppworks/ossum/riddl/-/commits/master)
-[![coverage](https://gitlab.com/yoppworks/ossum/riddl/badges/master/coverage.svg)](https://gitlab.com/yoppworks/ossum/riddl/-/commits/master)
 
 ## Introduction
 RIDDL, the Reactive Interface to Domain Definition Language, is a tool for
