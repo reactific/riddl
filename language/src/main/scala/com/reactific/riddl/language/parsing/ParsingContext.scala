@@ -6,8 +6,7 @@ import fastparse.*
 import fastparse.Parsed.{Failure, Success}
 import fastparse.internal.Lazy
 
-import java.io.File
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import scala.annotation.unused
 import scala.collection.mutable
 
@@ -36,22 +35,23 @@ trait ParsingContext {
 
   def location[u: P]: P[Location] = {
     val cur = current
-    P(Index).map(idx => cur.location(idx, cur.origin))
+    val relative = stack.stackRoot.relativize(cur.root).resolve(cur.origin)
+    P(Index).map(idx => cur.location(idx, relative.toString))
   }
 
   def doImport(loc: Location, domainName: Identifier, fileName: LiteralString): Domain = {
     val name = fileName.s
-    val file = new File(current.root, name)
-    if (!file.exists()) {
+    val file = current.root.resolve(name)
+    if (!Files.exists(file)) {
       error(fileName.loc,
         s"File '$name` does not exist, can't be imported.")
       Domain(loc, domainName)
-    } else { importDomain(file) }
+    } else {importDomain(file)}
   }
 
   def importDomain(
     @unused
-    file: File
+    file: Path
   ): Domain = {
     // TODO: implement importDomain
     Domain(Location(), Identifier(Location(), "NotImplemented"))
@@ -61,7 +61,7 @@ trait ParsingContext {
     rule: P[?] => P[Seq[T]]
   ): Include = {
     val name = str.s + ".riddl"
-    val path = current.root.toPath.resolve(name)
+    val path = current.root.resolve(name)
     if (Files.exists(path) && !Files.isHidden(path)) {
       if (Files.isReadable(path)) {
         stack.push(path)

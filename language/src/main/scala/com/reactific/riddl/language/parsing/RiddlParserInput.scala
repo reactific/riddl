@@ -14,7 +14,8 @@ import scala.language.implicitConversions
 abstract class RiddlParserInput extends ParserInput {
   def origin: String
   def data: String
-  def root: File
+
+  def root: Path
 
   override def apply(index: Int): Char = data.charAt(index)
   override def dropBuffer(index: Int): Unit = {}
@@ -86,27 +87,27 @@ case class StringParserInput(
   data: String,
   origin: String = Location.defaultSourceName)
     extends RiddlParserInput {
-  val root: File = new File(System.getProperty("user.dir"))
+  val root: Path = Path.of(System.getProperty("user.dir"))
 }
 
-case class FileParserInput(file: File) extends RiddlParserInput {
+case class FileParserInput(file: Path) extends RiddlParserInput {
 
   val data: String = {
-    val source: Source = Source.fromFile(file)
-    try { source.getLines().mkString("\n") }
-    finally { source.close() }
+    val source: Source = Source.fromFile(file.toFile)
+    try {source.getLines().mkString("\n")}
+    finally {source.close()}
   }
-  val root: File = file.getParentFile
-  def origin: String = file.getName
-  def this(path: Path) = this(path.toFile)
+  val root: Path = file.getParent
+
+  def origin: String = {file.getFileName.toString}
 }
 
 case class SourceParserInput(source: Source, origin: String) extends RiddlParserInput {
 
   val data: String =
-    try { source.mkString }
-    finally { source.close() }
-  val root: File = new File(System.getProperty("user.dir"))
+    try {source.mkString}
+    finally {source.close()}
+  val root: Path = Path.of(System.getProperty("user.dir"))
 }
 
 object RiddlParserInput {
@@ -115,8 +116,9 @@ object RiddlParserInput {
     data: String
   ): RiddlParserInput = { StringParserInput(data) }
 
-  implicit def apply(source: Source): RiddlParserInput = { SourceParserInput(source, source.descr) }
-  implicit def apply(file: File): RiddlParserInput = { FileParserInput(file) }
+  implicit def apply(source: Source): RiddlParserInput = {SourceParserInput(source, source.descr)}
 
-  implicit def apply(path: Path): RiddlParserInput = { FileParserInput(path.toFile) }
+  implicit def apply(file: File): RiddlParserInput = {FileParserInput(file.toPath)}
+
+  implicit def apply(path: Path): RiddlParserInput = {FileParserInput(path)}
 }

@@ -9,9 +9,8 @@ import java.net.URL
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import scala.collection.mutable
-import scala.sys.process.Process
-import java.nio.file._
 import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.sys.process.Process
 
 case class HugoTranslatingOptions(
   inputFile: Option[Path] = None,
@@ -172,7 +171,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
   def copyURLToDir(from: Option[URL], destDir: Path): String = {
     if (from.isDefined) {
       import java.io.InputStream
-      import java.nio.file.{ Files, StandardCopyOption }
+      import java.nio.file.{Files, StandardCopyOption}
       val nameParts = from.get.getFile.split('/').dropWhile(_.isEmpty)
       if (nameParts.nonEmpty) {
         val fileName = nameParts.last
@@ -334,7 +333,8 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
 
   def makeGeekDocExtras(
     state: HugoTranslatorState,
-    parents: Seq[String]
+    parents: Seq[String],
+    file: String
   ): Map[String,String] = {
     state.options.inputFile match {
       case Some(inputPath) =>
@@ -342,18 +342,22 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
         val gitRoot = findGitRoot(parent).getFileName.toString
         val asList = parent.normalize().toAbsolutePath.iterator().asScala.toSeq
         val relative = asList.dropWhile(_.toString != gitRoot).drop(1)
-        val partial = relative.map(_.toString.toLowerCase).mkString("/")
+        val partial = relative.map(_.toString).mkString("/")
+        val path = partial + "/" + parents.mkString("/") + "/" + file
         state.options.sourceURL match {
           case Some(url) if url.toString.startsWith("https://github.com/") =>
-            val path = url.toString + "/edit/main/" + partial + "/" +
-              inputPath.getFileName.toString.toLowerCase
-            Map("geekdocEditPath" -> path)
+            Map(
+              "geekdocEditPath" -> "/edit/main", "geekdocFilePath" -> path
+            )
           case Some(url) if url.toString.startsWith("https://gitlab.com/") =>
-            val path = url.toString + "/-/blob/main/" + partial
-            Map("geekdocEditPath" -> path)
+            Map(
+              "geekdocEditPath" -> "/-/blob/main", "geekdocFilePath" -> path)
           case _ =>
-            Map.empty[String,String]
+            Map.empty[String, String]
         }
+      case _ =>
+        throw new IllegalStateException(
+          "Should not be possible to have no input path")
     }
   }
 
@@ -365,7 +369,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
     state.addDir(c.id.format)
     val pars = parents(stack)
     val mdw = state.addFile(pars :+ c.id.format, "_index.md")
-    val extras = makeGeekDocExtras(state,pars)
+    val extras = makeGeekDocExtras(state, pars, c.loc.source)
     (mdw, pars, extras)
   }
 
@@ -376,7 +380,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
   ): (MarkdownWriter, Seq[String], Map[String,String]) = {
     val pars = parents(stack)
     val mdw = state.addFile(pars, d.id.format + ".md")
-    val extras = makeGeekDocExtras(state,pars)
+    val extras = makeGeekDocExtras(state, pars, d.loc.source)
     (mdw, pars, extras)
   }
 

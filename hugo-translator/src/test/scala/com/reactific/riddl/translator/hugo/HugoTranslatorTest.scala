@@ -1,29 +1,26 @@
 package com.reactific.riddl.translator.hugo
 
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+
 import java.net.URL
+import java.nio.file.Path
 
-class HugoTranslatorTest extends HugoTranslateExamplesBase {
+class HugoTranslatorTest extends AnyWordSpec with Matchers {
 
-  val output: String = "hugo-translator/target/translator/"
-  val roots = Map("Reactive BBQ" -> s"ReactiveBBQ/ReactiveBBQ.riddl",
-    "DokN" -> s"dokn/dokn.riddl")
-
-  val geekdoc_url = new URL(
-    "file://" + System.getProperty("user.dir") +
-    "/hugo-translator/src/test/data/hugo-geekdoc.tar.gz")
-
-  "HugoTranslator" should {
-    for { (name, fileName) <- roots } {
-      s"parse, validate, and translate $name" in {
-        val options = HugoTranslatingOptions(
-          themes =
-            Seq("hugo-geekdoc" ->
-              Option(geekdoc_url)),
-          sourceURL = Some(
-            new URL("https://github.com/reactific/riddl"))
-        )
-        checkExamples(name, fileName, options)
-      }
+  "HugoTranslator" must {
+    "translate geekdoc extras properly" in {
+      val options = HugoTranslatingOptions(
+        inputFile = Some(Path.of("examples/src/riddl/ReactiveBBQ/ReactiveBBQ.riddl")),
+        sourceURL = Some(new URL("https://github.com/reactific/riddl"))
+      )
+      val state = HugoTranslatorState(options)
+      val parents = Seq("domain", "context")
+      val file = "entity.riddl"
+      val result = HugoTranslator.makeGeekDocExtras(state, parents, file)
+      result must contain("geekdocEditPath" -> "/edit/main")
+      result must contain("geekdocFilePath" ->
+        "examples/src/riddl/ReactiveBBQ/domain/context/entity.riddl")
     }
   }
 }

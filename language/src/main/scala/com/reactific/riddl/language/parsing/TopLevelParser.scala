@@ -15,9 +15,11 @@ class TopLevelParser(rpi: RiddlParserInput) extends DomainParser {
   def fileRoot[u: P]: P[RootContainer] = { P(Start ~ P(domain).rep(0) ~ End).map(RootContainer(_)) }
 }
 
-case class FileParser(topFile: File) extends TopLevelParser(RiddlParserInput(topFile))
+case class FileParser(topFile: File) extends
+  TopLevelParser(RiddlParserInput(topFile))
 
-case class StringParser(content: String) extends TopLevelParser(RiddlParserInput(content))
+case class StringParser(content: String) extends
+  TopLevelParser(RiddlParserInput(content))
 
 object TopLevelParser {
 
@@ -29,13 +31,13 @@ object TopLevelParser {
   }
 
   def parse(file: File): Either[Seq[ParserError], RootContainer] = {
-    val fpi = FileParserInput(file)
+    val fpi = RiddlParserInput(file.toPath)
     val tlp = new TopLevelParser(fpi)
     tlp.expect(tlp.fileRoot(_))
   }
 
   def parse(path: Path): Either[Seq[ParserError], RootContainer] = {
-    val fpi = new FileParserInput(path)
+    val fpi = FileParserInput(path)
     val tlp = new TopLevelParser(fpi)
     tlp.expect(tlp.fileRoot(_))
   }

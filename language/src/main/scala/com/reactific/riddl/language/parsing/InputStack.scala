@@ -1,6 +1,6 @@
 package com.reactific.riddl.language.parsing
 
-import java.io.File
+import java.nio.file.Path
 import scala.collection.mutable
 
 /** The stack of input sources while parsing */
@@ -9,9 +9,11 @@ case class InputStack(
 
   private val inputs: mutable.Stack[RiddlParserInput] = mutable.Stack()
 
+  def stackRoot: Path = {inputs.last.root}
+
   def push(input: RiddlParserInput): Unit = inputs.push(input)
 
-  def push(file: File): Unit = { inputs.push(FileParserInput(file)) }
+  def push(file: Path): Unit = {inputs.push(FileParserInput(file))}
 
   def pop: RiddlParserInput = { inputs.pop() }
 
