@@ -1,8 +1,10 @@
-import org.jetbrains.sbtidea.Keys.IntelliJPlatform
 import sbt.Keys.scalaVersion
 import sbtbuildinfo.BuildInfoOption.{BuildTime, ToMap}
 
-maintainer := "reid@reactific.com"
+ThisBuild / maintainer := "reid@reactific.com"
+ThisBuild / organizationName := "Reactific Software LLC"
+ThisBuild / startYear := Some(2019)
+ThisBuild / licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 (Global / excludeLintKeys) ++=
@@ -33,7 +35,7 @@ buildInfoKeys := Seq[BuildInfoKey](
 )
 
 lazy val scala2_13_Options = Seq(
-  "-target:11",
+  "-target:17",
   // "-Ypatmat-exhaust-depth 40", Zinc can't handle this :(
   "-Xsource:3",
   "-Wdead-code",
@@ -68,7 +70,7 @@ lazy val riddl = (project in file(".")).settings(publish := {}, publishLocal := 
   )
 
 lazy val utils = project.in(file("utils"))
-  .configure(C.withCoverage)
+  .configure(C.withCoverage())
   .settings(
     name := "riddl-utils",
     coverageExcludedPackages := "<empty>",
@@ -77,7 +79,7 @@ lazy val utils = project.in(file("utils"))
 
 lazy val language = project.in(file("language"))
   .enablePlugins(BuildInfoPlugin)
-  .configure(C.withCoverage)
+  .configure(C.withCoverage())
   .settings(
     name := "riddl-language",
     buildInfoObject := "BuildInfo",
@@ -173,19 +175,3 @@ lazy val `sbt-riddl` = (project in file("sbt-riddl")).enablePlugins(SbtPlugin)
     },
     scriptedBufferLog := false
   )
-
-lazy val `riddl-idea-plugin` = project.in(file("riddl-idea-plugin"))
-  .enablePlugins(SbtIdeaPlugin)
-  .settings(
-    ThisBuild / intellijPluginName := "riddl-idea-plugin",
-    ThisBuild / intellijBuild      := "213.6461.79",
-    ThisBuild / intellijPlatform   := IntelliJPlatform.IdeaCommunity,
-    intellijPlugins       += "com.intellij.properties".toPlugin,
-    ThisBuild / intellijAttachSources := true,
-    Compile / javacOptions ++= "--release" :: "11" :: Nil,
-    libraryDependencies ++= Seq(
-      "com.eclipsesource.minimal-json" % "minimal-json" % "0.9.5" withSources()
-    ),
-    Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
-    Test / unmanagedResourceDirectories    += baseDirectory.value / "testResources"
-  ).dependsOn(language)
