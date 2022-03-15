@@ -52,7 +52,7 @@ trait ParsingContext {
   def location[u: P]: P[Location] = {
     val cur = current
     val relative = stack.stackRoot.relativize(cur.root).resolve(cur.origin)
-    P(Index).map(idx => cur.location(idx, relative.toString))
+    P(Index).map(idx => cur.location(idx, relative))
   }
 
   def doImport(loc: Location, domainName: Identifier, fileName: LiteralString): Domain = {

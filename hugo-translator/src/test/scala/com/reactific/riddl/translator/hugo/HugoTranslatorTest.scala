@@ -16,7 +16,7 @@ class HugoTranslatorTest extends AnyWordSpec with Matchers {
       )
       val state = HugoTranslatorState(options)
       val parents = Seq("domain", "context")
-      val file = "entity.riddl"
+      val file = options.inputFile.get
       val result = HugoTranslator.makeGeekDocExtras(state, parents, file)
       result must contain("geekdocEditPath" -> "/edit/main")
       result must contain("geekdocFilePath" ->

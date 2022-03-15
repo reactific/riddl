@@ -350,7 +350,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
   def makeGeekDocExtras(
     state: HugoTranslatorState,
     parents: Seq[String],
-    file: String
+    file: Path
   ): Map[String,String] = {
     state.options.inputFile match {
       case Some(inputPath) =>
@@ -359,7 +359,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
         val asList = parent.normalize().toAbsolutePath.iterator().asScala.toSeq
         val relative = asList.dropWhile(_.toString != gitRoot).drop(1)
         val partial = relative.map(_.toString).mkString("/")
-        val path = partial + "/" + parents.mkString("/") + "/" + file
+        val path = partial + "/" + file
         state.options.sourceURL match {
           case Some(url) if url.toString.startsWith("https://github.com/") =>
             Map(

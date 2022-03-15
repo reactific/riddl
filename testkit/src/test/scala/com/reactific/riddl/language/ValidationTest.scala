@@ -8,16 +8,16 @@ import org.scalatest.wordspec.AnyWordSpec
 class ValidationTest extends AnyWordSpec with must.Matchers {
   "ValidationMessage#format" should {
     "produce a correct string" in {
-      ValidationMessage(Location(1, 2, "the_source"), "the_message", Warning)
+      ValidationMessage(Location(1, 2), "the_message", Warning)
         .format mustBe s"Warning: the_source(1:2): the_message"
     }
     "compare based on locations" in {
       val v1 =
-        ValidationMessage(Location(1, 2, "the_source"), "the_message", Warning)
+        ValidationMessage(Location(1, 2), "the_message", Warning)
       val v2 =
-        ValidationMessage(Location(2, 3, "the_source"), "the_message", Warning)
-      v1 < v2 mustBe (true)
-      v1 == v1 mustBe (true)
+        ValidationMessage(Location(2, 3), "the_message", Warning)
+      v1 < v2 mustBe true
+      v1 == v1 mustBe true
     }
   }
 
@@ -47,7 +47,7 @@ class ValidationTest extends AnyWordSpec with must.Matchers {
         ValidationState(SymbolTable(RootContainer.empty))
           .checkNonEmpty(Nil, "foo", RootContainer.empty).messages mustBe
           List(ValidationMessage(
-            Location(0, 0, "Root"),
+            Location(0),
             "foo in Root should not be empty",
             Validation.Error
           ))

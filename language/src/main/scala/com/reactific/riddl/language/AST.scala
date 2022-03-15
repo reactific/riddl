@@ -369,7 +369,7 @@ object AST {
 
     override def isRootContainer: Boolean = true
 
-    def loc: Location = Location(0, 0, "Root")
+    def loc: Location = Location(0)
 
     override def id: Identifier = Identifier(loc, "Root")
 

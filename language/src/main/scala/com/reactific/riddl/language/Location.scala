@@ -16,36 +16,40 @@
 
 package com.reactific.riddl.language
 
+import java.nio.file.Path
 import scala.language.implicitConversions
 
 /** A location of an item in the input */
 case class Location(
   line: Int = 0,
   col: Int = 0,
-  source: String = Location.defaultSourceName)
+  source: Path = Location.defaultSource)
     extends Ordered[Location] {
   override def toString: String = { s"$source$toShort" }
   def toShort: String = { s"($line:$col)"}
 
   override def compare(that: Location): Int = {
     if (that.line == line) {
-      if (this.col == that.col) { this.source.compare(that.source) }
-      else { this.col - that.col }
+      if (this.col == that.col) {
+        this.source.toString.compare(that.source.toString)
+      } else { this.col - that.col }
     } else { this.line - that.line }
   }
 }
 
 object Location {
   val empty: Location = Location()
-  final val defaultSourceName = "default"
+  final val defaultSource: Path = Path.of(".", "default.riddl")
+  final val defaultSourceName = defaultSource.getFileName.toString
 
-  implicit def apply(line: Int): Location = { Location(line, 0, defaultSourceName) }
+  implicit def apply(line: Int): Location = { Location(line, 0, defaultSource) }
 
   implicit def apply(
     pair: (Int, Int)
-  ): Location = { Location(pair._1, pair._2, defaultSourceName) }
+  ): Location = { Location(pair._1, pair._2, defaultSource) }
 
   implicit def apply(triple: (Int, Int, String)): Location = {
-    Location(triple._1, triple._2, triple._3)
+    Location(triple._1, triple._2, Path.of(triple._3))
   }
+
 }

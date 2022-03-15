@@ -28,9 +28,9 @@ import scala.language.implicitConversions
 
 /** Same as fastparse.IndexedParserInput but with Location support */
 abstract class RiddlParserInput extends ParserInput {
-  def origin: String
+  def origin: Path
+  def originName: String
   def data: String
-
   def root: Path
 
   override def apply(index: Int): Char = data.charAt(index)
@@ -82,7 +82,7 @@ abstract class RiddlParserInput extends ParserInput {
     start -> end
   }
 
-  def location(index: Int, origin: String = ""): Location = {
+  def location(index: Int, origin: Path = root): Location = {
     val line = lineOf(index)
     val col = index - lineNumberLookup(line)
     Location(line + 1, col + 1, origin)
@@ -101,29 +101,30 @@ abstract class RiddlParserInput extends ParserInput {
 
 case class StringParserInput(
   data: String,
-  origin: String = Location.defaultSourceName)
+  originName: String = Location.defaultSourceName)
     extends RiddlParserInput {
-  val root: Path = Path.of(System.getProperty("user.dir"))
+  val origin: Path = Path.of(System.getProperty("user.dir"))
+  val root: Path = origin.getParent
 }
 
-case class FileParserInput(file: Path) extends RiddlParserInput {
+case class FileParserInput(origin: Path) extends RiddlParserInput {
 
   val data: String = {
-    val source: Source = Source.fromFile(file.toFile)
+    val source: Source = Source.fromFile(origin.toFile)
     try {source.getLines().mkString("\n")}
     finally {source.close()}
   }
-  val root: Path = file.getParent
-
-  def origin: String = {file.getFileName.toString}
+  val root: Path = origin.getParent
+  def originName: String = origin.getFileName.toString
 }
 
-case class SourceParserInput(source: Source, origin: String) extends RiddlParserInput {
+case class SourceParserInput(source: Source, originName: String) extends RiddlParserInput {
 
   val data: String =
     try {source.mkString}
     finally {source.close()}
-  val root: Path = Path.of(System.getProperty("user.dir"))
+  val root: Path = origin.getParent
+  def origin: Path = Path.of(System.getProperty("user.dir"))
 }
 
 object RiddlParserInput {
@@ -132,9 +133,13 @@ object RiddlParserInput {
     data: String
   ): RiddlParserInput = { StringParserInput(data) }
 
-  implicit def apply(source: Source): RiddlParserInput = {SourceParserInput(source, source.descr)}
+  implicit def apply(source: Source): RiddlParserInput = {
+    SourceParserInput(source, source.descr)
+  }
 
-  implicit def apply(file: File): RiddlParserInput = {FileParserInput(file.toPath)}
+  implicit def apply(file: File): RiddlParserInput = {
+    FileParserInput(file.toPath)
+  }
 
   implicit def apply(path: Path): RiddlParserInput = {FileParserInput(path)}
 }
