@@ -70,9 +70,10 @@ class RiddlOptionsTest extends AnyWordSpec with Matchers {
           ho.eraseOutput mustBe true
           ho.projectName mustBe Option("Reactive BBQ")
           ho.baseUrl mustBe Option(
-            new java.net.URL("https://riddl.yoppworks.com"))
+            new java.net.URL("https://riddl.tech"))
           ho.sourceURL mustBe Option(
-            new java.net.URL("https://gitlab.com/Yoppworks/Ossum/riddl"))
+            new java.net.URL("https://github.com/reactific/riddl"))
+          ho.editPath mustBe Option("/-/blob/main/examples/src/riddl/ReactiveBBQ")
           ho.siteLogo mustBe None
           ho.siteLogoPath mustBe Option("/images/RBBQ.png")
       }
@@ -90,6 +91,26 @@ class RiddlOptionsTest extends AnyWordSpec with Matchers {
           opts.commonOptions.showStyleWarnings mustBe false
           opts.commonOptions.showMissingWarnings mustBe false
           true
+      }
+    }
+
+    "empty args are eliminated" in {
+      val opts = Array("parse", "", " -i", "  ", "file.riddl")
+      RiddlOptions.parse(opts) match {
+        case Some(opts) =>
+          opts.parseOptions.inputFile mustBe Some(Path.of("file.riddl"))
+        case None =>
+          fail("Failed to parse options")
+      }
+    }
+
+    "--hugo-path is supported" in {
+      val opts = Array("from", "input.riddl", "--hugo-path", "/path/to/hugo")
+      RiddlOptions.parse(opts) match {
+        case Some(opts) =>
+          opts.fromOptions.hugoPath mustBe(Some(Path.of("/path/to/hugo")))
+        case None =>
+          fail("failed to parse options")
       }
     }
   }

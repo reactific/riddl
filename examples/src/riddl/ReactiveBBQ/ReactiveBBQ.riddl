@@ -2,10 +2,10 @@ domain ReactiveBBQ is {
 
 author is {
   name: "Reid Spencer"
-  email: "reid.spencer@yoppworks.com"
-  organization: "Yoppworks Inc."
-  title: "VP Technologies"
-  url: http://www.yoppworks.com/
+  email: "reid@reactific.com"
+  organization: "Reactific Software LLC"
+  title: "President"
+  url: http://reactific.com/
 }
 
 include "restaurant/domain"

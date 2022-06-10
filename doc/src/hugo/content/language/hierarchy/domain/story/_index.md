@@ -1,6 +1,7 @@
 ---
 title: "Story"
-type: page
+type: "page"
+draft: "false"
 weight: 20
 ---
 

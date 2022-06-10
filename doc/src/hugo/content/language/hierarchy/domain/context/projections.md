@@ -1,6 +1,7 @@
 ---
 title: "Projections"
-type: page
+type: "page"
+draft: "false"
 weight: 30
 ---
 

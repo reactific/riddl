@@ -1,5 +1,7 @@
 ---
 title: "Processors"
+type: "page"
+draft: "false"
 weight: 30
 ---
 

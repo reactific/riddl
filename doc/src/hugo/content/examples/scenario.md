@@ -1,5 +1,7 @@
 ---
 title: "RBBQ Scenarios"
+type: "page"
+draft: "false"
 weight: 20
 ---
 

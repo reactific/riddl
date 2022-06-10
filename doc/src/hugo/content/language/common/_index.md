@@ -1,5 +1,7 @@
 ---
 title: "Common"
+type: "page"
+draft: "false"
 weight: 12
 ---
 Some definitions are fundamental to RIDDL and can appear in many RIDDL 

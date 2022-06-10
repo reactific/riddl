@@ -1,6 +1,7 @@
 ---
 title: "Translation"
-type: "section"
+type: "page"
+draft: "false"
 weight: 40
 ---
 

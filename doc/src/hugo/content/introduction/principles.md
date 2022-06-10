@@ -1,5 +1,7 @@
 ---
 title: "Principles"
+type: "page"
+draft: "false"
 weight: 40
 ---
 RIDDL is a high level system specification language and as such must obey 

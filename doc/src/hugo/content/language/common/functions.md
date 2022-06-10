@@ -1,7 +1,8 @@
 ---
-title: Functions
-type: page
+title: "Functions"
+type: "page"
 weight: 50
+draft: "false"
 ---
 
 ## Introduction

@@ -1,5 +1,7 @@
 ---
 title: "Pipes"
+type: "page"
+draft: "false"
 weight: 20
 ---
 

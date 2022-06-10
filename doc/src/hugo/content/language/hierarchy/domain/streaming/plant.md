@@ -1,5 +1,7 @@
 ---
 title: "Plants"
+type: "page"
+draft: "false"
 weight: 40
 ---
 

@@ -31,6 +31,7 @@ import scala.sys.process.Process
 case class HugoTranslatingOptions(
   inputFile: Option[Path] = None,
   outputDir: Option[Path] = None,
+  hugoPath: Option[Path] = None,
   eraseOutput: Boolean = false,
   projectName: Option[String] = None,
   baseUrl: Option[URL] = Option(new URL("https://example.com/")),
@@ -50,8 +51,6 @@ case class HugoTranslatingOptions(
   def contentRoot: Path = outputRoot.resolve("content")
   def staticRoot: Path = outputRoot.resolve("static")
   def themesRoot: Path = outputRoot.resolve("themes")
-  def riddlThemeRoot: Path = themesRoot
-    .resolve(HugoTranslator.riddl_hugo_theme._1)
   def configFile: Path = outputRoot.resolve("config.toml")
 }
 
@@ -165,10 +164,8 @@ case class HugoTranslatorState(options: HugoTranslatingOptions) {
 object HugoTranslator extends Translator[HugoTranslatingOptions] {
   val defaultOptions: HugoTranslatingOptions = HugoTranslatingOptions()
 
-  val riddl_hugo_theme: (String, String) = "riddl-hugo-theme" ->
-    "riddl-hugo-theme.zip"
   val geekdoc_dest_dir = "hugo-geekdoc"
-  val geekDoc_version = "v0.27.3"
+  val geekDoc_version = "v0.27.4"
   val geekDoc_file = "hugo-geekdoc.tar.gz"
   val geekDoc_url = new URL(
     s"https://github.com/thegeeklab/hugo-geekdoc/releases/download/$geekDoc_version/$geekDoc_file"
@@ -218,16 +215,10 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
     }
   }
 
-  def loadThemes(log: Logger, options: HugoTranslatingOptions): Unit = {
+  def loadThemes(options: HugoTranslatingOptions): Unit = {
     for ((name, url) <- options.themes) {
       val destDir = options.themesRoot.resolve(name)
       loadATheme(url, destDir)
-    }
-    val url = this.getClass.getClassLoader.getResource(riddl_hugo_theme._2)
-    if (url == null) {
-      log.severe(s"Build Botch: Can't load resource '${riddl_hugo_theme._2}'")
-    } else {
-      loadATheme(Option(url), options.themesRoot.resolve(riddl_hugo_theme._1))
     }
   }
 
@@ -282,10 +273,36 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
   }
 
   def loadSiteLogo(options: HugoTranslatingOptions): Path = {
-    if (options.siteLogo.nonEmpty) {
-      val fileName = copyURLToDir(options.siteLogo, options.staticRoot)
-      options.staticRoot.resolve(fileName)
-    } else { options.riddlThemeRoot.resolve("img/YWLogo.png") }
+    options.siteLogo match {
+      case Some(_) =>
+        val fileName = copyURLToDir(options.siteLogo, options.staticRoot)
+        options.staticRoot.resolve(fileName)
+      case None =>
+        options.staticRoot.resolve("logo.png")
+    }
+  }
+
+  def copyResource(destination: Path):Unit = {
+    import java.nio.file.Files
+    import java.nio.file.StandardCopyOption
+    val name = destination.getFileName.toString
+    val src = ClassLoader.getSystemClassLoader.getResourceAsStream(name)
+    Files.copy(src, destination, StandardCopyOption.REPLACE_EXISTING)
+  }
+
+  def manuallyMakeNewHugoSite(where: File): Unit = {
+    val path = where.toPath
+    if (Files.isDirectory(path)) {
+      Files.createDirectories(path.resolve("archetypes"))
+      Files.createDirectories(path.resolve("content"))
+      Files.createDirectories(path.resolve("data"))
+      Files.createDirectories(path.resolve("layouts"))
+      Files.createDirectories(path.resolve("public"))
+      Files.createDirectories(path.resolve("static"))
+      Files.createDirectories(path.resolve("themes"))
+      copyResource(path.resolve("config.toml"))
+      copyResource(path.resolve("archetypes").resolve("default.md"))
+    }
   }
 
   def makeDirectoryStructure(
@@ -301,16 +318,40 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
       parent.isDirectory,
       "Parent of output directory is not a directory!"
     )
-    if (
-      0 != Process(s"hugo new site ${outDir.getAbsolutePath}", cwd = parent).!
-    ) { log.error(s"Hugo could not create a site here: $outDir") }
-    else {
-      loadThemes(log, options)
-      loadStaticAssets(
-        inputPath,
-        log,
-        options
-      ) // for reference from riddl doc blocks
+    def existsInPath(path: String): Boolean =
+      System.getenv("PATH").split(java.util.regex.Pattern.quote(
+        File.pathSeparator)
+      ).map(Path.of(_)).exists(p => Files.isExecutable(p.resolve(path)))
+
+    val hugoPath = options.hugoPath match {
+      case Some(path) if Files.isExecutable(path) =>
+        Some(path.toString)
+      case Some(path) if existsInPath(path.toString) =>
+        Some(path.toString)
+      case Some(path) =>
+        log.error(s"Unable to find hugo at: $path")
+        None
+      case None =>
+        Some("hugo")
+    }
+    hugoPath match {
+      case Some(path) =>
+        if (0 !=
+          Process(s"$path new site ${outDir.getAbsolutePath}", cwd = parent).!
+        ) {
+          log.error(s"Hugo could not create a site here: $outDir")
+        }
+        else {
+          loadThemes(options)
+          loadStaticAssets(
+            inputPath,
+            log,
+            options
+          ) // for reference from riddl doc blocks
+        }
+      case None =>
+        log.info("Setting up hugo site manually, no 'hugo' found")
+        manuallyMakeNewHugoSite(outDir)
     }
     val logoPath = loadSiteLogo(options).relativize(options.staticRoot).toString
     options.copy(siteLogoPath = Option(logoPath))
@@ -489,8 +530,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
       email = LiteralString(1 -> 1, "somebody@somewere.tld")
     ))
     val themes: String = {
-      val names: Seq[String] = options.themes.map(_._1)
-      (names :+ this.riddl_hugo_theme._1).mkString("[ \"", "\", \"", "\" ]")
+      options.themes.map(_._1).mkString("[ \"", "\", \"", "\" ]")
     }
     val siteLogoPath: String = options.siteLogoPath.getOrElse("logo.png")
     val legalPath: String = "/legal"
