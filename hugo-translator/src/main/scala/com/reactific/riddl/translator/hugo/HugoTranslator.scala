@@ -20,7 +20,8 @@ import com.reactific.riddl.language.AST._
 import com.reactific.riddl.language._
 import com.reactific.riddl.utils.Zip
 
-import java.io.{File, IOException}
+import java.io.File
+import java.io.IOException
 import java.net.URL
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
@@ -37,8 +38,7 @@ case class HugoTranslatingOptions(
   baseUrl: Option[URL] = Option(new URL("https://example.com/")),
   themes: Seq[(String, Option[URL])] =
     Seq("hugo-geekdoc" -> Option(HugoTranslator.geekDoc_url)),
-  sourceURL: Option[URL] = Some(
-    new URL("http://github.como/reactific/riddl/")),
+  sourceURL: Option[URL] = Some(new URL("http://github.como/reactific/riddl/")),
   siteLogo: Option[URL] = None,
   siteLogoPath: Option[String] = Some("images/logo.png"),
   withGlossary: Boolean = true,
@@ -101,8 +101,12 @@ case class HugoTranslatorState(options: HugoTranslatingOptions) {
 
   def makeIndex(root: RootContainer): Unit = {
     val mdw = addFile(Seq.empty[String], "_index.md")
-    mdw.fileHead("Top Index", 10, Option("The main index to the content"),
-      Map.empty[String,String])
+    mdw.fileHead(
+      "Top Index",
+      10,
+      Option("The main index to the content"),
+      Map.empty[String, String]
+    )
     mdw.h2("Domains")
     val domains = root.contents.sortBy(_.id.value)
       .map(d => s"[${d.id.value}](${d.id.value.toLowerCase}/)")
@@ -124,7 +128,7 @@ case class HugoTranslatorState(options: HugoTranslatingOptions) {
         "Glossary Of Terms",
         lastFileWeight - 1,
         Option("A list of definitions needing more work"),
-        Map.empty[String,String]
+        Map.empty[String, String]
       )
       mdw.emitGlossary(lastFileWeight, terms)
     }
@@ -145,7 +149,7 @@ case class HugoTranslatorState(options: HugoTranslatingOptions) {
         "To Do List",
         lastFileWeight - 1,
         Option("A list of definitions needing more work"),
-        Map.empty[String,String]
+        Map.empty[String, String]
       )
       mdw.h2("Definitions With Missing Content")
       mdw.list(items)
@@ -184,7 +188,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
   def copyURLToDir(from: Option[URL], destDir: Path): String = {
     if (from.isDefined) {
       import java.io.InputStream
-      import java.nio.file.{Files, StandardCopyOption}
+      import java.nio.file.{ Files, StandardCopyOption }
       val nameParts = from.get.getFile.split('/').dropWhile(_.isEmpty)
       if (nameParts.nonEmpty) {
         val fileName = nameParts.last
@@ -207,10 +211,11 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
           zip_path.toFile.delete()
         case name if name.endsWith(".tar.gz") =>
           val rc = Process(s"tar zxf $fileName", cwd = destDir.toFile).!
-          if (rc != 0) {throw new IOException(s"Failed to unzip $zip_path")}
+          if (rc != 0) { throw new IOException(s"Failed to unzip $zip_path") }
           zip_path.toFile.delete()
-        case _ =>
-          throw new IllegalArgumentException("Can only load a theme from .tar.gz or .zip file")
+        case _ => throw new IllegalArgumentException(
+            "Can only load a theme from .tar.gz or .zip file"
+          )
       }
     }
   }
@@ -277,12 +282,11 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
       case Some(_) =>
         val fileName = copyURLToDir(options.siteLogo, options.staticRoot)
         options.staticRoot.resolve(fileName)
-      case None =>
-        options.staticRoot.resolve("logo.png")
+      case None => options.staticRoot.resolve("logo.png")
     }
   }
 
-  def copyResource(destination: Path):Unit = {
+  def copyResource(destination: Path): Unit = {
     import java.nio.file.Files
     import java.nio.file.StandardCopyOption
     val name = destination.getFileName.toString
@@ -318,29 +322,24 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
       parent.isDirectory,
       "Parent of output directory is not a directory!"
     )
-    def existsInPath(path: String): Boolean =
-      System.getenv("PATH").split(java.util.regex.Pattern.quote(
-        File.pathSeparator)
-      ).map(Path.of(_)).exists(p => Files.isExecutable(p.resolve(path)))
+    def existsInPath(path: String): Boolean = System.getenv("PATH")
+      .split(java.util.regex.Pattern.quote(File.pathSeparator)).map(Path.of(_))
+      .exists(p => Files.isExecutable(p.resolve(path)))
 
     val hugoPath = options.hugoPath match {
-      case Some(path) if Files.isExecutable(path) =>
-        Some(path.toString)
-      case Some(path) if existsInPath(path.toString) =>
-        Some(path.toString)
+      case Some(path) if Files.isExecutable(path)    => Some(path.toString)
+      case Some(path) if existsInPath(path.toString) => Some(path.toString)
       case Some(path) =>
         log.error(s"Unable to find hugo at: $path")
         None
-      case None =>
-        Some("hugo")
+      case None => Some("hugo")
     }
     hugoPath match {
       case Some(path) =>
-        if (0 !=
-          Process(s"$path new site ${outDir.getAbsolutePath}", cwd = parent).!
-        ) {
-          log.error(s"Hugo could not create a site here: $outDir")
-        }
+        if (
+          0 !=
+            Process(s"$path new site ${outDir.getAbsolutePath}", cwd = parent).!
+        ) { log.error(s"Hugo could not create a site here: $outDir") }
         else {
           loadThemes(options)
           loadStaticAssets(
@@ -379,12 +378,13 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
 
   def findGitRoot(path: Path): Path = {
     var p = path.toAbsolutePath
-    while (p != null && Files.isDirectory(p) &&
-      !Files.isDirectory(p.resolve(".git"))) {
-      p = p.getParent
-    }
-    require(Files.isDirectory(p) && Files.isDirectory(p.resolve(".git")),
-      s"Could not find git root at $path")
+    while (
+      p != null && Files.isDirectory(p) && !Files.isDirectory(p.resolve(".git"))
+    ) { p = p.getParent }
+    require(
+      Files.isDirectory(p) && Files.isDirectory(p.resolve(".git")),
+      s"Could not find git root at $path"
+    )
     p
   }
 
@@ -392,7 +392,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
     state: HugoTranslatorState,
     parents: Seq[String],
     file: Path
-  ): Map[String,String] = {
+  ): Map[String, String] = {
     state.options.inputFile match {
       case Some(inputPath) =>
         val parent = inputPath.getParent
@@ -403,18 +403,14 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
         val path = partial + "/" + file
         state.options.sourceURL match {
           case Some(url) if url.toString.startsWith("https://github.com/") =>
-            Map(
-              "geekdocEditPath" -> "/edit/main", "geekdocFilePath" -> path
-            )
+            Map("geekdocEditPath" -> "/edit/main", "geekdocFilePath" -> path)
           case Some(url) if url.toString.startsWith("https://gitlab.com/") =>
-            Map(
-              "geekdocEditPath" -> "/-/blob/main", "geekdocFilePath" -> path)
-          case _ =>
-            Map.empty[String, String]
+            Map("geekdocEditPath" -> "/-/blob/main", "geekdocFilePath" -> path)
+          case _ => Map.empty[String, String]
         }
-      case _ =>
-        throw new IllegalStateException(
-          "Should not be possible to have no input path")
+      case _ => throw new IllegalStateException(
+          "Should not be possible to have no input path"
+        )
     }
   }
 
@@ -422,7 +418,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
     c: ParentDefOf[Definition],
     state: HugoTranslatorState,
     stack: Seq[ParentDefOf[Definition]]
-  ): (MarkdownWriter, Seq[String], Map[String,String]) = {
+  ): (MarkdownWriter, Seq[String], Map[String, String]) = {
     state.addDir(c.id.format)
     val pars = parents(stack)
     val mdw = state.addFile(pars :+ c.id.format, "_index.md")
@@ -434,7 +430,7 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
     d: Definition,
     state: HugoTranslatorState,
     stack: Seq[ParentDefOf[Definition]]
-  ): (MarkdownWriter, Seq[String], Map[String,String]) = {
+  ): (MarkdownWriter, Seq[String], Map[String, String]) = {
     val pars = parents(stack)
     val mdw = state.addFile(pars, d.id.format + ".md")
     val extras = makeGeekDocExtras(state, pars, d.loc.source)
@@ -542,8 +538,8 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
        |languageCode = 'en-us'
        |title = '${options.projectName.getOrElse("Unspecified Project Title")}'
        |name = "${options.projectName.getOrElse("Unspecified Project Name")}"
-       |description = "${
-        options.projectName.getOrElse("Unspecified Project Description")}"
+       |description = "${options.projectName
+      .getOrElse("Unspecified Project Description")}"
        |baseUrl = "${options.baseUrl.fold("https://example.prg/")(_.toString)}"
        |homepage = "https://example.org/"
        |demosite = "https://example.org/"
@@ -617,9 +613,8 @@ object HugoTranslator extends Translator[HugoTranslatingOptions] {
        |
        |  # (Optional, default none) Set source repository location. Used for 'Edit page' links.
        |  # You can also specify this parameter per page in front matter.
-       |  ${options.sourceURL.fold("# geekdocRepo = \"\"")(
-            "geekdocRepo = \"" +  _.toString + "\"")
-           }
+       |  ${options.sourceURL
+      .fold("# geekdocRepo = \"\"")("geekdocRepo = \"" + _.toString + "\"")}
        |
        |  # (Optional, default none) Enable 'Edit page' links. Requires
        |  # 'geekdocRepo' param and path must point to 'content' directory of
