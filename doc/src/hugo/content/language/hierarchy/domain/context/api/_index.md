@@ -1,7 +1,8 @@
 ---
 title: "APIs"
-type: page
+type: "page"
 weight: 20
+draft: "false"
 ---
 
 An `api` definition represents a stateless application programming interface.

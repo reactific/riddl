@@ -1,7 +1,6 @@
 ---
 title: "Interactions"
 weight: 50
-
 ---
 
 ## Introduction

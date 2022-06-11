@@ -1,6 +1,7 @@
 ---
-title: Invariants
-type: page
+title: "Invariants"
+type: "page"
+draft: "false"
 weight: 20
 ---
 Invariants specify rules about the state of an entity that must never be

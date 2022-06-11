@@ -1,6 +1,7 @@
 ---
 title: "Compilation"
-type: page
+draft: "false"
+type: "page" 
 weight: 30
 ---
 

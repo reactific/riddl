@@ -1,6 +1,7 @@
 ---
 title: "Streaming"
-type: page 
+type: "page"
+draft: "false"
 weight: 40
 ---
 

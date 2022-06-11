@@ -1,6 +1,7 @@
 ---
 title: "State"
-type: page
+type: "page"
+draft: "false"
 weight: 10
 ---
 

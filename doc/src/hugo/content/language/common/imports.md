@@ -1,5 +1,7 @@
 ---
 title: "Imports"
+type: "page"
+draft: "false"
 weight: 60
 ---
 

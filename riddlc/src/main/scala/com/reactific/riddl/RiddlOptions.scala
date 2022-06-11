@@ -36,7 +36,8 @@ import scala.util.control.NonFatal
 case class FromOptions(
   configFile: Option[Path] = None,
   inputFile: Option[Path] = None,
-  outputDir: Option[Path] = None
+  outputDir: Option[Path] = None,
+  hugoPath: Option[Path] = None
 )
 case class InputFileOptions(inputFile: Option[Path] = None)
 
@@ -166,6 +167,8 @@ object RiddlOptions {
         inputPath <- inputPathRes.asString
         outputPathRes <- objCur.atKey("output-dir")
         outputPath <- outputPathRes.asString
+        hugoPathRes <- objCur.atKey("hugo-path")
+        hugoPath <- hugoPathRes.asString
         baseURL <- optional(
           objCur, "base-url", Option.empty[String]) { cc =>
           cc.asString.map(Option[String])
@@ -210,6 +213,7 @@ object RiddlOptions {
           HugoTranslatingOptions(
             Option(Path.of(inputPath)),
             Option(Path.of(outputPath)),
+            Option(Path.of(hugoPath)),
             eraseOutput, Option(projectName),
             handleURL(baseURL), themes,
             handleURL(sourceURL),
@@ -364,7 +368,12 @@ object RiddlOptions {
                   outputDir = o.fromOptions.outputDir
                 ))
               } else { p }
-              Option(q)
+              val r = if (o.fromOptions.hugoPath.nonEmpty) {
+                q.copy(hugoOptions = o.hugoOptions.copy(
+                  hugoPath = o.fromOptions.hugoPath
+                ))
+              } else { q }
+              Option(r)
             case RiddlOptions.HugoGitCheck => Option(o)
             case RiddlOptions.D3 => Option(o)
             case _ => Option(o)
@@ -416,7 +425,10 @@ object RiddlOptions {
       // ignore terminate
       override def terminate(exitState: Either[String, Unit]): Unit = ()
     }
-    val (result, effects) = OParser.runParser(RiddlOptions.parser, args, RiddlOptions(), setup)
+
+    val saneOptions = args.map(_.trim).filterNot(_.isEmpty)
+    val (result, effects) = OParser.runParser(RiddlOptions.parser, saneOptions,
+      RiddlOptions(), setup)
     OParser.runEffects(effects, dontTerminate)
     result
   }
@@ -441,11 +453,14 @@ object RiddlOptions {
       hugoOptions = c.hugoOptions.copy(inputFile = Option(v.toPath)))),
     outputDir((v, c) => c.copy(
       hugoOptions = c.hugoOptions.copy(outputDir = Option(v.toPath)))),
+    opt[File]('H', "hugo-path").optional().action((v, c) => c.copy(
+      hugoOptions = c.hugoOptions.copy(hugoPath = Option(v.toPath))
+    )).text("optional path to the hugo web site generator"),
     opt[String]('p', "project-name").optional()
       .action((v, c) => c.copy(
         hugoOptions = c.hugoOptions.copy(projectName = Option(v)))
       )
-      .text("Optional project name to associate with the generated output")
+      .text("optional project name to associate with the generated output")
       .validate(n =>
         if (n.isBlank) {
           Left("optional project-name cannot be blank or empty")
@@ -471,7 +486,7 @@ object RiddlOptions {
     opt[URL]('l', name = "site-logo-url")
       .action((u, c) => c.copy(hugoOptions = c.hugoOptions.copy(siteLogo = Option(u))))
       .text("URL to the site's logo image for use by site"),
-    opt[String]('p', "site-logo-path")
+    opt[String]('m', "site-logo-path")
       .action((s, c) => c.copy(hugoOptions =
         c.hugoOptions.copy(siteLogoPath = Option(s)))
       ).text(
@@ -549,7 +564,11 @@ object RiddlOptions {
             c.fromOptions.copy(inputFile = Option(v.toPath)))),
           outputDir((v, c) => c.copy(fromOptions =
             c.fromOptions.copy(outputDir = Option(v.toPath))
-          ))
+          )),
+          opt[File]('H', "hugo-path").optional().action((v, c) => c.copy(
+            fromOptions = c.fromOptions.copy(hugoPath = Option(v.toPath))
+          )).text("optional path to the hugo web site generator"),
+
         )
         .text("Load riddlc options from a config file")
   )

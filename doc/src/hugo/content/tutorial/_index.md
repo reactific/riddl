@@ -1,7 +1,8 @@
 ---
 title: "Tutorial"
 description: "A tutorial "
-type: "docs"
+type: "page"
+draft: "false"
 order: 40
 ---
 

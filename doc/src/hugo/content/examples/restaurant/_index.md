@@ -1,5 +1,7 @@
 ---
 title: "Restaurant"
+type: "page"
+draft: "false"
 weight: 40
 ---
 
