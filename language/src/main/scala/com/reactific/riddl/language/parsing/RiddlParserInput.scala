@@ -104,7 +104,7 @@ case class StringParserInput(
   originName: String = Location.defaultSourceName)
     extends RiddlParserInput {
   val origin: Path = Path.of(System.getProperty("user.dir"))
-  val root: Path = origin.getParent
+  val root: Path = Path.of("<string>")
 }
 
 case class FileParserInput(origin: Path) extends RiddlParserInput {
